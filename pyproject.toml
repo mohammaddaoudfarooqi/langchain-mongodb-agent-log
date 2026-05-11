@@ -1,0 +1,120 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "langchain-mongodb-agent-log"
+version = "0.1.0"
+description = "Queryable, hybrid-searchable agent activity log for LangChain agents on MongoDB Atlas."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+authors = [
+  { name = "MongoDB" },
+]
+keywords = [
+  "langchain",
+  "langgraph",
+  "mongodb",
+  "atlas",
+  "agent",
+  "log",
+  "audit",
+  "hybrid-search",
+  "vector-search",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Database",
+]
+
+dependencies = [
+  "pymongo>=4.6",
+  "langchain-core>=0.3",
+  "langchain>=0.3.27",
+  "langgraph>=0.3",
+  "langchain-mongodb>=0.11",
+]
+
+[project.optional-dependencies]
+voyage = [
+  "langchain-voyageai>=0.1.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/mongodb-labs/langchain-mongodb-agent-log"
+Repository = "https://github.com/mongodb-labs/langchain-mongodb-agent-log"
+Issues = "https://github.com/mongodb-labs/langchain-mongodb-agent-log/issues"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "mongomock>=4.1",
+  "ruff>=0.5",
+  "mypy>=1.10",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/langchain_mongodb_agent_log"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+  "integration: requires live MongoDB Atlas (gated by ATLAS_URI)",
+]
+filterwarnings = [
+  "error",
+  # langchain_core emits a deprecation warning on some optional code paths
+  # we don't touch; let those through.
+  "default::DeprecationWarning",
+  "default::PendingDeprecationWarning",
+  # langchain-core's own deprecation warning hierarchy
+  "default::langchain_core._api.deprecation.LangChainPendingDeprecationWarning",
+  "default::langchain_core._api.deprecation.LangChainDeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "W", "I", "B", "UP", "SIM", "C90",
+]
+ignore = [
+  "B008",  # function call in default argument is fine for our adapters
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+disallow_any_generics = false  # langchain types use plenty of Any internally
+
+[[tool.mypy.overrides]]
+module = [
+  "mongomock",
+  "mongomock.*",
+  "langchain_voyageai",
+  "langchain_voyageai.*",
+  "langgraph.*",
+  "langchain.agents.*",
+  "langchain_mongodb.*",
+]
+ignore_missing_imports = true
