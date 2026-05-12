@@ -1,37 +1,58 @@
 # langchain-mongodb-agent-log
 
-A queryable, hybrid-searchable activity log for LangChain agents, backed by
-MongoDB Atlas. Drop-in for `create_agent`, deepagents, multi-agent
-supervisors, and bare `StateGraph` graphs. Sits **alongside** LangGraph's
-checkpointer — not a replacement. The checkpointer holds opaque resume
-state; this package holds the decoded conversation in your own database
-where you can query it, search it, and let agents recall it per user.
+> v0.2 — alpha. API stable but not frozen. Apache-2.0.
 
-> v0.1 — alpha. API is stable but not frozen. Apache-2.0.
+## What problem this solves
 
----
+Your agent has been running for weeks. A user asks:
+**"can you tell me what I asked your bot last week?"**
 
-## Why
+Your existing tools each fall short:
 
-LangGraph's `MongoDBSaver` (or the SaaS Postgres saver) stores serialized
-channel state. You can't query it, you can't full-text search it, your
-agent can't recall it at runtime. LangSmith gives you observability in a
-dashboard, but its public API is metadata-filter + 250-char-truncated
-substring search — not a per-user semantic memory store.
+- **`MongoDBSaver` / LangGraph checkpoint** — opaque msgpack BSON. Can't
+  grep it, can't search it, can't let the agent recall it.
+- **LangSmith** — fine engineering UI, but the public retrieval API is
+  metadata filter + 250-char truncated substring search. No semantic
+  similarity. Data lives in LangChain Inc.'s SaaS.
+- **`MongoDBChatMessageHistory`** — closer, but no per-user enforcement,
+  no hybrid search, no `tool_calls` / todos / files-touched metadata.
+- **DIY** — ~1100 LOC across worker thread, index DDL, RRF retriever,
+  ContextVar scoping, and the test suite that proves it works.
 
-`langchain-mongodb-agent-log` solves the third surface:
+This package is the **fifth option**: a queryable, hybrid-searchable,
+per-user-scoped agent activity log in your existing MongoDB Atlas
+cluster, drop-in via a middleware or callback adapter.
 
-- **Decoded conversation log** — one document per agent super-step, with
-  messages, tool calls, todos, files touched, and per-agent attribution.
-- **Atlas hybrid search** — RRF fusion of `$search` + `$vectorSearch`,
-  scoped per-user via `pre_filter`.
-- **Drop-in adapters** — `AgentLogMiddleware` for `create_agent` /
-  deepagents, `AgentLogCallbackHandler` for bare `StateGraph` /
-  multi-agent / mixed graphs, `agent_log_node` for explicit-node use.
-- **Fire-and-forget** — the agent super-step never blocks on the write
-  or the embedding round-trip.
-- **Self-hosted** — your data, your cluster. No third party in the data
-  path.
+```
+agent ──▶ AgentLogMiddleware ──▶ AgentLog (engine) ──▶ MongoDB Atlas
+                                                       │
+                                                       ▼
+agent ◀── search_past_conversations ◀── AgentLogRetriever (RRF, per-user)
+```
+
+→ **[Full motivation, comparisons, and decision rubric](docs/explanation/why-this-exists.md)**
+
+## What you get in three claims
+
+1. **Decoded JSON in your DB.** Open Compass, run an aggregation, build
+   a dashboard. `messages`, `tool_calls`, `todos`, `files_touched`,
+   `agent_name`, `correlation_id` — all queryable.
+2. **Hybrid retrieval the agent itself can call.** RRF fusion of
+   `$search` + `$vectorSearch`, scoped per `user_id` via mandatory
+   pre-filter. One `pip install` plus three lines of wiring.
+3. **Fire-and-forget, multi-tenant safe.** Daemon-thread worker keeps
+   the agent's hot path non-blocking. ContextVar-based `user_id`
+   scoping (v0.2+) makes one shared handler safe across concurrent
+   users.
+
+## What this is NOT
+
+- **Not a LangGraph checkpointer.** Cannot resume execution. Run
+  `MongoDBSaver` alongside this; they're orthogonal.
+- **Not LangSmith.** Doesn't ship an engineering UI, run-diff/replay,
+  or eval datasets. Run LangSmith alongside this; complementary.
+- **Not a knowledge-base store.** This stores the *conversation*, not
+  curated content.
 
 ## 60-second quickstart
 
@@ -75,10 +96,25 @@ That's it. One document per super-step lands in `db["agent_log"]`. The
 final reply of each turn carries `agent_log_text` + `agent_log_embedding`
 fields ready for hybrid search.
 
+## Decision rubric — do you need this?
+
+| If you need... | Reach for... |
+|---|---|
+| Resume after crash, time travel, branch | `MongoDBSaver` |
+| Engineering trace UI, run diff, eval datasets | LangSmith |
+| Curated knowledge corpus retrieval | `MongoDBAtlasVectorSearch` over your KB |
+| **Conversation memory the agent itself queries in-loop** | **This package** |
+| **Audit log of what the agent said and did, queryable in MQL** | **This package** |
+| **Multi-tenant async server with one shared handler** | **This package** (v0.2+ `scoped_user`) |
+
+Most teams run several of these together. They're orthogonal, not
+substitutes.
+
 ## Where to go next
 
 | If you want to... | Read |
 |---|---|
+| Understand *why* this package exists vs. alternatives | [`docs/explanation/why-this-exists.md`](docs/explanation/why-this-exists.md) |
 | Walk from zero to a working agent log | [`docs/tutorial/first-log.md`](docs/tutorial/first-log.md) |
 | Add agent self-recall via hybrid search | [`docs/tutorial/hybrid-search.md`](docs/tutorial/hybrid-search.md) |
 | Wire it into a `create_agent` agent | [`docs/how-to/create-agent.md`](docs/how-to/create-agent.md) |
@@ -86,6 +122,7 @@ fields ready for hybrid search.
 | Multi-agent supervisor + workers | [`docs/how-to/multi-agent-supervisor.md`](docs/how-to/multi-agent-supervisor.md) |
 | Bare `StateGraph` (the agentic-ai shape) | [`docs/how-to/bare-stategraph.md`](docs/how-to/bare-stategraph.md) |
 | Migrate from `create_react_agent` | [`docs/how-to/migrate-from-create-react-agent.md`](docs/how-to/migrate-from-create-react-agent.md) |
+| Per-user scoping in a multi-user server (v0.2+) | [`docs/how-to/per-user-scoping-with-contextvar.md`](docs/how-to/per-user-scoping-with-contextvar.md) |
 | TTL-based retention | [`docs/how-to/configure-ttl.md`](docs/how-to/configure-ttl.md) |
 | Plug in OpenAI / Bedrock / your own embedder | [`docs/how-to/provide-custom-embeddings.md`](docs/how-to/provide-custom-embeddings.md) |
 | API surface, every public name | [`docs/reference/api.md`](docs/reference/api.md) |
@@ -93,7 +130,7 @@ fields ready for hybrid search.
 | Atlas index DDL | [`docs/reference/indexes.md`](docs/reference/indexes.md) |
 | Constructor knobs and defaults | [`docs/reference/configuration.md`](docs/reference/configuration.md) |
 | How the engine + adapters fit together | [`docs/explanation/architecture.md`](docs/explanation/architecture.md) |
-| Why this isn't a checkpointer | [`docs/explanation/why-not-checkpointer.md`](docs/explanation/why-not-checkpointer.md) |
+| Why this isn't a checkpointer (deep dive) | [`docs/explanation/why-not-checkpointer.md`](docs/explanation/why-not-checkpointer.md) |
 | How it fits next to LangSmith | [`docs/explanation/langsmith-comparison.md`](docs/explanation/langsmith-comparison.md) |
 
 The full doc index: [`docs/README.md`](docs/README.md).
@@ -104,8 +141,8 @@ The full doc index: [`docs/README.md`](docs/README.md).
 - `langchain >= 0.3.27`, `langchain-core >= 0.3`, `langgraph >= 0.3`,
   `langchain-mongodb >= 0.11`, `pymongo >= 4.6`.
 - MongoDB Atlas with Search + Vector Search indexes (the search
-  features are now generally available on community editions where
-  Search is enabled; storage works on any MongoDB).
+  features are generally available on community editions where Search
+  is enabled; storage works on any MongoDB).
 - Voyage extra (`[voyage]`) optional.
 
 ## License

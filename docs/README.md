@@ -50,9 +50,12 @@ Look these up; don't read them top to bottom.
 Read these when you want to understand the design rather than make
 something work.
 
+- **[Why this package exists](explanation/why-this-exists.md)** — the
+  problem, the four alternatives that fall short, and a decision
+  rubric. Start here if you're evaluating whether to adopt this.
 - [Architecture](explanation/architecture.md) — engine + adapter +
   worker boundary.
 - [Why not a checkpointer?](explanation/why-not-checkpointer.md) — the
-  difference vs. `MongoDBSaver`.
+  difference vs. `MongoDBSaver`, with side-by-side data model.
 - [Comparison with LangSmith](explanation/langsmith-comparison.md) — what
-  LangSmith does and doesn't cover.
+  LangSmith does and doesn't cover for in-loop agent recall.
