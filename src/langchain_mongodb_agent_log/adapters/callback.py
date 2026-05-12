@@ -21,6 +21,7 @@ from uuid import UUID
 
 from langchain_core.callbacks import BaseCallbackHandler
 
+from ..core.context import current_user_id
 from ..core.engine import AgentLog
 
 
@@ -82,13 +83,26 @@ class AgentLogCallbackHandler(BaseCallbackHandler):
         node = meta.get("langgraph_node")
         if not node:
             return None  # not a top-level graph superstep
+        # Spec v0.2: ``user_id`` resolves in three tiers, each beating
+        # the next:
+        #   1. ``metadata["user_id"]`` — explicit per-call override.
+        #   2. :func:`scoped_user` ContextVar — the request-boundary
+        #      scope, isolated per asyncio.Task / thread. Production
+        #      multi-user servers should set this once per request.
+        #   3. ``self._default_user_id`` — constructor floor.
+        # All three tiers are kept because each serves a real use
+        # case: metadata for one-off testing, ContextVar for
+        # multi-tenant servers, constructor for single-user
+        # deployments.
+        resolved_user_id = (
+            str(meta.get("user_id") or "")
+            or (current_user_id() or "")
+            or (self._default_user_id or "")
+        )
         self._pending[run_id] = {
             "agent_name": str(node),
             "thread_id": str(meta.get("thread_id") or ""),
-            # LangGraph elevates ``thread_id`` to top-level metadata but
-            # not ``user_id``; fall back to the constructor default if
-            # the user didn't pass it via ``config["metadata"]``.
-            "user_id": str(meta.get("user_id") or self._default_user_id or ""),
+            "user_id": resolved_user_id,
             "correlation_id": meta.get("correlation_id"),
         }
         return None

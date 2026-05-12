@@ -28,6 +28,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from .adapters.callback import AgentLogCallbackHandler
     from .adapters.middleware import AgentLogMiddleware
     from .adapters.node import agent_log_node
+    from .core.context import current_user_id, scoped_user
     from .embeddings.factory import default_voyage
     from .retrieval.retriever import AgentLogRetriever
     from .retrieval.tool import search_past_conversations
@@ -42,6 +43,8 @@ __all__ = [
     "ensure_agent_log_indexes",
     "ensure_search_indexes",
     "default_voyage",
+    "scoped_user",
+    "current_user_id",
     "__version__",
 ]
 
@@ -53,6 +56,8 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "AgentLogRetriever": (".retrieval.retriever", "AgentLogRetriever"),
     "search_past_conversations": (".retrieval.tool", "search_past_conversations"),
     "default_voyage": (".embeddings.factory", "default_voyage"),
+    "scoped_user": (".core.context", "scoped_user"),
+    "current_user_id": (".core.context", "current_user_id"),
 }
 
 

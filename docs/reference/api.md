@@ -144,3 +144,40 @@ pip install langchain-mongodb-agent-log[voyage]
 - [Configuration](configuration.md) — defaults and tuning knobs.
 - [Document shape](document-shape.md) — what `record()` writes.
 - [Indexes](indexes.md) — what the index helpers create.
+
+## `scoped_user(user_id: str) -> ContextManager[None]`  *(v0.2+)*
+
+```python
+from langchain_mongodb_agent_log import scoped_user
+```
+
+Context manager that sets the package-private `user_id` ContextVar
+for the duration of the `with` block. Used by the callback adapter
+when neither `metadata["user_id"]` nor a constructor default is set.
+
+Per-`asyncio.Task` and per-thread isolated. Restores the previous
+value on `__exit__`, including when the block raises.
+
+```python
+with scoped_user("alice"):
+    graph.invoke(payload, config={"callbacks": [handler]})
+```
+
+See [`docs/how-to/per-user-scoping-with-contextvar.md`](../how-to/per-user-scoping-with-contextvar.md)
+for the full pattern.
+
+## `current_user_id() -> str | None`  *(v0.2+)*
+
+```python
+from langchain_mongodb_agent_log import current_user_id
+```
+
+Read the active scoped `user_id`. Returns the value set by the
+innermost active `scoped_user(...)` block in the current task /
+thread, or `None` if no scope is active.
+
+O(1). No I/O.
+
+The callback adapter calls this internally when the per-call
+`metadata["user_id"]` is empty. Application code rarely needs to
+call it directly.

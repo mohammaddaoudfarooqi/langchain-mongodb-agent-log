@@ -129,3 +129,116 @@ def test_callback_missing_thread_id_skips(log: Any, coll: Any) -> None:
     h.on_chain_end({"messages": [_msg(type="ai", content="x")]}, run_id=rid, tags=[], metadata=None)
     log.flush_for_tests()
     assert coll.count_documents({}) == 0
+
+
+# --- Spec v0.2 — 3-tier user_id resolution -----------------------
+
+
+def test_TC_106a_metadata_user_id_wins_over_contextvar(log: Any, coll: Any) -> None:  # type: ignore[no-untyped-def]
+    """REQ-106: per-call ``metadata["user_id"]`` overrides the ContextVar."""
+    from langchain_mongodb_agent_log import (
+        AgentLogCallbackHandler,
+        scoped_user,
+    )
+
+    h = AgentLogCallbackHandler(log)
+    rid = uuid4()
+    meta = {
+        "langgraph_node": "supervisor",
+        "thread_id": "t1",
+        "user_id": "explicit-from-meta",
+    }
+    with scoped_user("from-contextvar"):
+        h.on_chain_start(None, {}, run_id=rid, tags=[], metadata=meta)
+        h.on_chain_end(
+            {"messages": [_msg(type="ai", content="ok")]},
+            run_id=rid,
+            tags=[],
+            metadata=None,
+        )
+    log.flush_for_tests()
+    doc = coll.find_one({})
+    assert doc is not None
+    assert doc["user_id"] == "explicit-from-meta"
+
+
+def test_TC_106b_contextvar_used_when_metadata_missing(log: Any, coll: Any) -> None:  # type: ignore[no-untyped-def]
+    """REQ-106: ContextVar provides ``user_id`` when metadata lacks it."""
+    from langchain_mongodb_agent_log import (
+        AgentLogCallbackHandler,
+        scoped_user,
+    )
+
+    # NO constructor default — proves the CV is the only source.
+    h = AgentLogCallbackHandler(log)
+    rid = uuid4()
+    meta = {
+        "langgraph_node": "supervisor",
+        "thread_id": "t1",
+        # user_id intentionally absent
+    }
+    with scoped_user("alice"):
+        h.on_chain_start(None, {}, run_id=rid, tags=[], metadata=meta)
+        h.on_chain_end(
+            {"messages": [_msg(type="ai", content="ok")]},
+            run_id=rid,
+            tags=[],
+            metadata=None,
+        )
+    log.flush_for_tests()
+    doc = coll.find_one({})
+    assert doc is not None
+    assert doc["user_id"] == "alice"
+
+
+def test_TC_106c_contextvar_overrides_constructor_default(  # type: ignore[no-untyped-def]
+    log: Any, coll: Any
+) -> None:
+    """REQ-106: when both are set, ContextVar wins over the constructor default."""
+    from langchain_mongodb_agent_log import (
+        AgentLogCallbackHandler,
+        scoped_user,
+    )
+
+    # Constructor default points at a stale fallback; CV should take precedence.
+    h = AgentLogCallbackHandler(log, user_id="ctor-default")
+    rid = uuid4()
+    meta = {"langgraph_node": "supervisor", "thread_id": "t1"}
+    with scoped_user("from-contextvar"):
+        h.on_chain_start(None, {}, run_id=rid, tags=[], metadata=meta)
+        h.on_chain_end(
+            {"messages": [_msg(type="ai", content="ok")]},
+            run_id=rid,
+            tags=[],
+            metadata=None,
+        )
+    log.flush_for_tests()
+    doc = coll.find_one({})
+    assert doc is not None
+    assert doc["user_id"] == "from-contextvar"
+
+
+def test_TC_106d_constructor_used_when_neither_metadata_nor_contextvar(  # type: ignore[no-untyped-def]
+    log: Any, coll: Any
+) -> None:
+    """REQ-106 / INV-102: constructor default is the floor.
+
+    No metadata user_id, no scoped_user — the constructor default
+    must still kick in (preserves v0.1 behavior).
+    """
+    from langchain_mongodb_agent_log import AgentLogCallbackHandler
+
+    h = AgentLogCallbackHandler(log, user_id="ctor-default")
+    rid = uuid4()
+    meta = {"langgraph_node": "supervisor", "thread_id": "t1"}
+    h.on_chain_start(None, {}, run_id=rid, tags=[], metadata=meta)
+    h.on_chain_end(
+        {"messages": [_msg(type="ai", content="ok")]},
+        run_id=rid,
+        tags=[],
+        metadata=None,
+    )
+    log.flush_for_tests()
+    doc = coll.find_one({})
+    assert doc is not None
+    assert doc["user_id"] == "ctor-default"
