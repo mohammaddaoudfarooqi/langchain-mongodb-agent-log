@@ -11,6 +11,7 @@ from collections.abc import Callable
 from typing import Any
 
 from ..core.engine import AgentLog
+from ._correlation import derive_correlation_id
 
 
 def agent_log_node(log: AgentLog) -> Callable[[Any, Any], dict[str, Any]]:
@@ -47,14 +48,13 @@ def agent_log_node(log: AgentLog) -> Callable[[Any, Any], dict[str, Any]]:
         messages = state.get("messages", []) if isinstance(state, dict) else []
         todos = state.get("todos") if isinstance(state, dict) else None
         agent_name = cfg.get("agent_name") or "main"
-        correlation_id = cfg.get("correlation_id")
         log.record(
             thread_id=thread_id,
             user_id=user_id,
             messages=messages,
             todos=todos,
             agent_name=str(agent_name),
-            correlation_id=str(correlation_id) if correlation_id else None,
+            correlation_id=derive_correlation_id(cfg),
         )
         return {}
 

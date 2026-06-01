@@ -181,3 +181,69 @@ O(1). No I/O.
 The callback adapter calls this internally when the per-call
 `metadata["user_id"]` is empty. Application code rarely needs to
 call it directly.
+
+---
+
+# v0.3 additions
+
+## `AgentLog` lifecycle & observability
+
+```python
+log.close(timeout=5.0)   # drain queue + stop the worker (idempotent) -> bool
+log.flush(timeout=5.0)   # bounded drain, worker keeps running        -> bool
+log.stats()              # queue/throughput counters, no DB round-trip -> dict
+```
+
+`AgentLog(..., flush_on_exit=True)` registers an `atexit` best-effort drain
+(default on; pass `False` to opt out). `stats()` keys: `queue_depth`,
+`queue_capacity`, `worker_alive`, `enqueued`, `written`, `dropped`,
+`embed_failures`, `write_failures`, `last_write_ts`.
+
+## Durable step counter *(opt-in)*
+
+```python
+log = AgentLog(collection=db["agent_log"], durable_step=True)
+# step/parent_step come from a persisted per-thread atomic counter
+# (collection "<name>_counters"), assigned on the worker thread.
+```
+
+Default (`durable_step=False`) keeps the in-memory counter (reset on restart,
+lock-guarded). Use `ts` for ordering across restarts regardless.
+
+## Ordered (non-semantic) reads
+
+```python
+log.get_thread("user:thread", user_id="alice", limit=50, ascending=True)
+log.get_by_correlation_id("req-123")
+```
+
+Ordered by `ts` (then `step`), backed by `agent_log_thread_ts_idx`. Robust
+across restarts — prefer this over sorting by `step`.
+
+## `AgentLog.record(..., ts=datetime)`
+
+Override the document timestamp for deterministic seeding.
+
+## Retrieval: index names, filters, rerank
+
+```python
+tool = build_tool(coll, embeddings, search_index="my_search", vector_index="my_vec",
+                  reranker=my_reranker)
+retriever.invoke(q, user_id="alice", thread_id="t1", since=dt)  # user_id always enforced
+```
+
+A `reranker` is best-effort: any reranker error falls back to RRF order.
+
+## `set_ttl(collection, ttl_seconds)`
+
+```python
+from langchain_mongodb_agent_log import set_ttl
+set_ttl(db["agent_log"], 7 * 24 * 3600)  # change retention in place (collMod)
+set_ttl(db["agent_log"], None)           # remove the TTL index
+```
+
+## `AgentLogMiddleware(log, agent_name="researcher")`
+
+Constructor `agent_name` override (beats `configurable["agent_name"]`) — the
+attribution seam for deepagents subagents. See
+[`how-to/attribute-subagents.md`](../how-to/attribute-subagents.md).

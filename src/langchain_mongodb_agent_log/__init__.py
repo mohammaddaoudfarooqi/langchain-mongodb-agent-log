@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 from ._version import __version__
 from .core.engine import AgentLog
-from .core.indexes import ensure_agent_log_indexes, ensure_search_indexes
+from .core.indexes import ensure_agent_log_indexes, ensure_search_indexes, set_ttl
 
 if TYPE_CHECKING:  # pragma: no cover
     from .adapters.callback import AgentLogCallbackHandler
@@ -42,6 +42,7 @@ __all__ = [
     "search_past_conversations",
     "ensure_agent_log_indexes",
     "ensure_search_indexes",
+    "set_ttl",
     "default_voyage",
     "scoped_user",
     "current_user_id",

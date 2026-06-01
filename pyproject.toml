@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "langchain-mongodb-agent-log"
-version = "0.2.0"
+version = "0.3.0"
 description = "Queryable, hybrid-searchable agent activity log for LangChain agents on MongoDB Atlas."
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -50,9 +50,9 @@ voyage = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/mongodb-labs/langchain-mongodb-agent-log"
-Repository = "https://github.com/mongodb-labs/langchain-mongodb-agent-log"
-Issues = "https://github.com/mongodb-labs/langchain-mongodb-agent-log/issues"
+Homepage = "https://github.com/mohammaddaoudfarooqi/langchain-mongodb-agent-log"
+Repository = "https://github.com/mohammaddaoudfarooqi/langchain-mongodb-agent-log"
+Issues = "https://github.com/mohammaddaoudfarooqi/langchain-mongodb-agent-log/issues"
 
 [dependency-groups]
 dev = [
