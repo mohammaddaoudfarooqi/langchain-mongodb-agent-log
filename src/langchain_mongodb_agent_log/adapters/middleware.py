@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any
 from langchain.agents.middleware import AgentMiddleware
 
 from ..core.engine import AgentLog
+from ._correlation import derive_correlation_id
 
 if TYPE_CHECKING:  # pragma: no cover
     pass
@@ -63,10 +64,21 @@ class AgentLogMiddleware(AgentMiddleware[Any, Any, Any]):
         )
     """
 
-    def __init__(self, log: AgentLog) -> None:
+    def __init__(self, log: AgentLog, *, agent_name: str | None = None) -> None:
+        """Construct the middleware.
+
+        Args:
+            log: The :class:`AgentLog` engine instance to write through.
+            agent_name: Optional constructor override (REQ-315). WHEN set it
+                takes precedence over ``configurable["agent_name"]`` — the
+                attribution seam for deepagents subagents: attach
+                ``AgentLogMiddleware(log, agent_name="researcher")`` to that
+                subagent's ``middleware=[...]`` list.
+        """
         super().__init__()
         self.tools: list[Any] = []
         self._log = log
+        self._agent_name = agent_name
 
     def after_model(self, state: Any, runtime: Any) -> None:
         cfg = _configurable_from_runtime(runtime)
@@ -74,15 +86,15 @@ class AgentLogMiddleware(AgentMiddleware[Any, Any, Any]):
         user_id = str(cfg.get("user_id") or "")
         messages = state.get("messages", []) if isinstance(state, dict) else []
         todos = state.get("todos") if isinstance(state, dict) else None
-        agent_name = cfg.get("agent_name")
-        correlation_id = cfg.get("correlation_id")
+        # REQ-315: constructor override beats configurable.
+        agent_name = self._agent_name or cfg.get("agent_name")
         self._log.record(
             thread_id=thread_id,
             user_id=user_id,
             messages=messages,
             todos=todos,
             agent_name=str(agent_name) if agent_name else None,
-            correlation_id=str(correlation_id) if correlation_id else None,
+            correlation_id=derive_correlation_id(cfg),
         )
         return None
 

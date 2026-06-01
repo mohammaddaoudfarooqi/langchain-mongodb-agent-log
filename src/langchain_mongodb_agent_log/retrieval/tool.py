@@ -18,13 +18,13 @@ etc.). The error is logged at warning level on the package's named logger.
 from __future__ import annotations
 
 import json
-import logging
 from typing import TYPE_CHECKING, Any
 
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
 from .._logging import get_logger
+from ..core.indexes import SEARCH_INDEX_NAME, VECTOR_INDEX_NAME
 from .retriever import AgentLogRetriever
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -41,14 +41,26 @@ def build_tool(
     embeddings: Embeddings,
     *,
     top_k: int = 5,
+    search_index: str = SEARCH_INDEX_NAME,
+    vector_index: str = VECTOR_INDEX_NAME,
+    reranker: Any | None = None,
 ) -> Any:
     """Return a LangChain tool bound to ``collection`` + ``embeddings``.
 
-    The tool's input schema is ``{"query": str}`` (and optional ``k``).
-    ``user_id`` is never an input parameter — it must come from the
-    ``RunnableConfig`` so the agent cannot spoof another user's history.
+    The tool's input schema is ``{"query": str}``. ``user_id`` is never an
+    input parameter — it must come from the ``RunnableConfig`` so the agent
+    cannot spoof another user's history. ``search_index`` / ``vector_index``
+    (REQ-311) and ``reranker`` (REQ-313) are forwarded to the retriever so
+    the query path matches the deployment's DDL.
     """
-    retriever = AgentLogRetriever(collection, embeddings, top_k=top_k)
+    retriever = AgentLogRetriever(
+        collection,
+        embeddings,
+        top_k=top_k,
+        search_index=search_index,
+        vector_index=vector_index,
+        reranker=reranker,
+    )
 
     @tool
     def search_past_conversations(
@@ -114,6 +126,3 @@ def search_past_conversations(*args: Any, **kwargs: Any) -> str:  # noqa: D401
         "`build_tool(collection, embeddings)` and add the result to your "
         "agent's `tools=[...]`."
     )
-
-
-_ = logging  # silence "imported but unused" until structured logs land in v0.2

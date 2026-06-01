@@ -47,3 +47,19 @@ Pass `ttl_seconds=None` (the default). The TTL index is never created.
   application or run a scheduled MongoDB Atlas Trigger.
 - The Atlas Search and Vector Search indexes do not auto-shrink when
   documents are TTL-deleted; the next refresh window picks them up.
+
+## Change the TTL without dropping the index *(v0.3)*
+
+`ensure_agent_log_indexes(ttl_seconds=...)` only sets the TTL at creation
+time — changing it used to require dropping and recreating the index. Use
+`set_ttl` to mutate `expireAfterSeconds` in place via `collMod`:
+
+```python
+from langchain_mongodb_agent_log import set_ttl
+
+set_ttl(db["agent_log"], 7 * 24 * 3600)  # 30 days -> 7 days, no drop
+set_ttl(db["agent_log"], None)           # remove the TTL index entirely
+```
+
+On deployments without `collMod` (mongomock, older community server) it warns
+and falls back to creating the index, never raising.

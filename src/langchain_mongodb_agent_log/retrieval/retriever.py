@@ -8,17 +8,22 @@ every call so the per-user filter never leaks across users.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from langchain_mongodb import MongoDBAtlasVectorSearch
 from langchain_mongodb.retrievers import MongoDBAtlasHybridSearchRetriever
 
+from .._logging import get_logger
 from ..core.indexes import SEARCH_INDEX_NAME, VECTOR_INDEX_NAME
 
 if TYPE_CHECKING:  # pragma: no cover
     from langchain_core.documents import Document
     from langchain_core.embeddings import Embeddings
     from pymongo.collection import Collection
+
+
+_log = get_logger()
 
 
 class AgentLogRetriever:
@@ -45,12 +50,16 @@ class AgentLogRetriever:
         search_index: str = SEARCH_INDEX_NAME,
         vector_index: str = VECTOR_INDEX_NAME,
         top_k: int = 5,
+        reranker: Any | None = None,
+        fetch_multiplier: int = 3,
     ) -> None:
         self._collection = collection
         self._embeddings = embeddings
         self._search_index = search_index
         self._vector_index = vector_index
         self._top_k = max(1, min(top_k, self._K_HARD_CAP))
+        self._reranker = reranker
+        self._fetch_multiplier = max(1, fetch_multiplier)
         self._vector_store = MongoDBAtlasVectorSearch(
             collection=collection,
             embedding=embeddings,
@@ -61,17 +70,43 @@ class AgentLogRetriever:
             auto_create_index=False,
         )
 
-    def invoke(self, query: str, *, user_id: str) -> list[Document]:
+    def invoke(
+        self,
+        query: str,
+        *,
+        user_id: str,
+        thread_id: str | None = None,
+        since: datetime | None = None,
+    ) -> list[Document]:
         """Return up to ``top_k`` log documents ranked by RRF fusion.
 
-        The per-user pre-filter is mandatory and is verified at the
-        retriever level. The caller can never see another user's
-        threads through this method.
+        The per-user pre-filter is mandatory and verified at the retriever
+        level (INV-004) — a caller can never see another user's threads.
+        Optional ``thread_id`` / ``since`` only further narrow results
+        (REQ-312). When a ``reranker`` was supplied, results are over-fetched
+        and reranked; any reranker error falls back to RRF order (REQ-313).
         """
+        pre_filter: dict[str, Any] = {"user_id": {"$eq": user_id}}
+        if thread_id:
+            pre_filter["thread_id"] = {"$eq": thread_id}
+        if since is not None:
+            pre_filter["ts"] = {"$gte": since}
+
+        fetch_k = self._top_k * self._fetch_multiplier if self._reranker else self._top_k
         retriever = MongoDBAtlasHybridSearchRetriever(
             vectorstore=self._vector_store,
             search_index_name=self._search_index,
-            top_k=self._top_k,
-            pre_filter={"user_id": {"$eq": user_id}},
+            top_k=fetch_k,
+            pre_filter=pre_filter,
         )
-        return retriever.invoke(query)
+        docs = retriever.invoke(query)
+        if self._reranker is None:
+            return docs
+        try:
+            reranked = self._reranker.compress_documents(docs, query)
+            return list(reranked)[: self._top_k]
+        except Exception as exc:  # noqa: BLE001 - rerank is best-effort
+            _log.warning(
+                "agent_log rerank failed; falling back to hybrid order: %s", exc
+            )
+            return docs[: self._top_k]

@@ -13,6 +13,7 @@ Both helpers no-op cleanly on re-run.
 """
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING, Any
 
 from .._logging import get_logger
@@ -71,6 +72,8 @@ def ensure_search_indexes(
     collection: Collection[Any],
     *,
     embeddings_dim: int,
+    vector_index: str = VECTOR_INDEX_NAME,
+    search_index: str = SEARCH_INDEX_NAME,
 ) -> None:
     """Create Atlas Search + Atlas Vector Search indexes idempotently.
 
@@ -82,6 +85,10 @@ def ensure_search_indexes(
         collection: The agent-log collection.
         embeddings_dim: Dimension of the embedding vector. Must match
             the vectors actually stored on the documents.
+        vector_index: Atlas Vector Search index name (REQ-311). Defaults to
+            ``agent_log_vector_idx``. Pass the same name the query path uses.
+        search_index: Atlas Search index name (REQ-311). Defaults to
+            ``agent_log_search_idx``.
     """
     vector_def = {
         "fields": [
@@ -99,16 +106,56 @@ def ensure_search_indexes(
             "dynamic": False,
             "fields": {
                 "agent_log_text": {"type": "string"},
-                "user_id": {"type": "string"},
+                "user_id": {"type": "token"},
+                # REQ-314: structured $search can scope by agent, not only by
+                # the synthesized agent_log_text.
+                "agent_name": {"type": "token"},
             },
         }
     }
     _safe_create_search_index(
-        collection, name=VECTOR_INDEX_NAME, definition=vector_def, type_="vectorSearch"
+        collection, name=vector_index, definition=vector_def, type_="vectorSearch"
     )
     _safe_create_search_index(
-        collection, name=SEARCH_INDEX_NAME, definition=search_def, type_="search"
+        collection, name=search_index, definition=search_def, type_="search"
     )
+
+
+def set_ttl(collection: Collection[Any], ttl_seconds: int | None) -> None:
+    """Create or update the agent-log TTL without dropping the index (REQ-317).
+
+    Uses ``collMod`` to mutate ``expireAfterSeconds`` on
+    ``agent_log_ts_ttl_idx`` in place. ``ttl_seconds=None`` removes the TTL
+    index. On deployments lacking ``collMod`` (mongomock, older community
+    server) it warns and falls back to creating the index, never raising.
+
+    Args:
+        collection: The agent-log collection.
+        ttl_seconds: New retention in seconds, or ``None`` to remove the TTL.
+    """
+    if ttl_seconds is None:
+        with contextlib.suppress(Exception):
+            collection.drop_index(_INDEX_NAME_TTL)
+        return
+    try:
+        collection.database.command(
+            {
+                "collMod": collection.name,
+                "index": {
+                    "name": _INDEX_NAME_TTL,
+                    "expireAfterSeconds": ttl_seconds,
+                },
+            }
+        )
+        return
+    except Exception as exc:  # noqa: BLE001 - mongomock/community lack collMod
+        _log.warning(
+            "set_ttl: collMod unavailable (%s); creating TTL index instead", exc
+        )
+    with contextlib.suppress(Exception):
+        collection.create_index(
+            [("ts", 1)], name=_INDEX_NAME_TTL, expireAfterSeconds=ttl_seconds
+        )
 
 
 def _safe_create_search_index(

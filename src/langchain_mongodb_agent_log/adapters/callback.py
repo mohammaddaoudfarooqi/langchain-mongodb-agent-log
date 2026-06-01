@@ -23,6 +23,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 
 from ..core.context import current_user_id
 from ..core.engine import AgentLog
+from ._correlation import derive_correlation_id
 
 
 class AgentLogCallbackHandler(BaseCallbackHandler):
@@ -103,7 +104,7 @@ class AgentLogCallbackHandler(BaseCallbackHandler):
             "agent_name": str(node),
             "thread_id": str(meta.get("thread_id") or ""),
             "user_id": resolved_user_id,
-            "correlation_id": meta.get("correlation_id"),
+            "correlation_id": derive_correlation_id(meta),
         }
         return None
 
