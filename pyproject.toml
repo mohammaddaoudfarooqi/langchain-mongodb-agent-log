@@ -54,9 +54,10 @@ dependencies = [
 voyage = []
 
 [project.urls]
-Homepage = "https://github.com/mohammaddaoudfarooqi/langchain-mongodb-agent-log"
-Repository = "https://github.com/mohammaddaoudfarooqi/langchain-mongodb-agent-log"
-Issues = "https://github.com/mohammaddaoudfarooqi/langchain-mongodb-agent-log/issues"
+Homepage = "https://github.com/mongodb-partners/langchain-mongodb-agent-log"
+Repository = "https://github.com/mongodb-partners/langchain-mongodb-agent-log"
+Issues = "https://github.com/mongodb-partners/langchain-mongodb-agent-log/issues"
+Changelog = "https://github.com/mongodb-partners/langchain-mongodb-agent-log/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
