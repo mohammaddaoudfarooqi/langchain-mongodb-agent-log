@@ -1,6 +1,6 @@
 """Background worker for agent-log persistence.
 
-Spec REQ-018..022: the agent super-step must not block on the MongoDB write
+The agent super-step must not block on the MongoDB write
 or the embedding round-trip. The worker drains a bounded queue on a single
 daemon thread, preserving FIFO order per ``thread_id``.
 
@@ -12,12 +12,12 @@ Why a single daemon thread:
   docs are lost on hard exit unless :meth:`close` is called first (v0.3).
 
 v0.3 additions:
-- **Drop-oldest backpressure (BUG-301):** a full queue evicts the head, not
-  the incoming doc, matching REQ-020's documented "drop the oldest" semantics.
-- **Bounded drain / close (REQ-300/301, BUG-302):** :meth:`drain` waits at
-  most ``timeout`` seconds; :meth:`close` drains then stops the worker.
-- **Counters (REQ-304/305):** ``stats()`` exposes queue + throughput signal
-  for operator health probes, with no database round-trip.
+- **Drop-oldest backpressure:** a full queue evicts the head, not
+  the incoming doc, preserving "drop the oldest" semantics.
+- **Bounded drain / close:** :meth:`drain` waits at most ``timeout`` seconds;
+  :meth:`close` drains then stops the worker.
+- **Counters:** ``stats()`` exposes queue + throughput signal for operator
+  health probes, with no database round-trip.
 """
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ class _DaemonWorker:
         self._cond = threading.Condition(self._lock)
         self._inflight = 0
         self._closed = False
-        # Observability counters (REQ-304/305). Mutated under ``_lock``.
+        # Observability counters. Mutated under ``_lock``.
         self._enqueued = 0
         self._written = 0
         self._dropped = 0
@@ -83,6 +83,13 @@ class _DaemonWorker:
         if self._closed:
             return
         self._ensure_started()
+        # Count the doc as in-flight BEFORE it becomes visible to the worker.
+        # Otherwise the worker can dequeue and run its decrement ahead of this
+        # increment; the ``_inflight > 0`` guard then drops that decrement,
+        # orphaning the counter so ``drain()`` never observes zero.
+        with self._cond:
+            self._inflight += 1
+            self._enqueued += 1
         try:
             self._queue.put_nowait(doc)
         except queue.Full:
@@ -91,12 +98,12 @@ class _DaemonWorker:
                 self._queue.put_nowait(doc)
             except queue.Full:  # pragma: no cover - worker fell further behind
                 with self._cond:
+                    self._inflight -= 1
+                    self._enqueued -= 1
                     self._dropped += 1
+                    self._cond.notify_all()
                 _log.warning("agent_log queue full; dropped incoming doc")
                 return
-        with self._cond:
-            self._inflight += 1
-            self._enqueued += 1
 
     def _evict_oldest(self, incoming: dict[str, Any]) -> None:
         """Discard one doc from the head so the newest can be enqueued."""
@@ -209,11 +216,11 @@ class _DaemonWorker:
                     self._cond.notify_all()
 
     def _assign_durable_step(self, doc: dict[str, Any]) -> None:
-        """REQ-306: assign monotonic ``step`` from the persisted counter.
+        """Assign monotonic ``step`` from the persisted counter.
 
         Runs on the worker thread (never the agent hot path). On any counter
         failure the doc is still inserted with ``step=None`` rather than
-        dropped (INV-002 spirit: a logged turn beats a lost one).
+        dropped — a logged turn beats a lost one.
         """
         thread_id = doc.pop("__assign_step", None)
         if thread_id is None or self._counter_coll is None:
