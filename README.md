@@ -3,7 +3,6 @@
 A queryable, hybrid-searchable activity log for LangChain agents, persisted in
 MongoDB Atlas — drop-in via a middleware or callback adapter.
 
-[![CI](https://github.com/mongodb-partners/langchain-mongodb-agent-log/actions/workflows/ci.yml/badge.svg)](https://github.com/mongodb-partners/langchain-mongodb-agent-log/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
