@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -35,7 +35,7 @@ def coll() -> Any:
 def test_TC_318_explicit_ts_stored(coll: Any) -> None:
     from langchain_mongodb_agent_log import AgentLog
 
-    fixed = datetime(2020, 5, 17, 12, 0, 0, tzinfo=timezone.utc)
+    fixed = datetime(2020, 5, 17, 12, 0, 0, tzinfo=UTC)
     log = AgentLog(collection=coll, flush_on_exit=False)
     log.record(thread_id="t1", user_id="u1", messages=[_msg(type="human", content="x")], ts=fixed)
     log.flush_for_tests(timeout=5.0)
@@ -44,7 +44,7 @@ def test_TC_318_explicit_ts_stored(coll: Any) -> None:
     # real Atlas too), so normalize tz before comparing.
     stored = doc["ts"]
     if stored.tzinfo is None:
-        stored = stored.replace(tzinfo=timezone.utc)
+        stored = stored.replace(tzinfo=UTC)
     assert stored == fixed
     log.close(timeout=5.0)
 
@@ -53,15 +53,15 @@ def test_TC_318_explicit_ts_stored(coll: Any) -> None:
 def test_TC_318_default_ts_is_now(coll: Any) -> None:
     from langchain_mongodb_agent_log import AgentLog
 
-    before = datetime.now(timezone.utc)
+    before = datetime.now(UTC)
     log = AgentLog(collection=coll, flush_on_exit=False)
     log.record(thread_id="t1", user_id="u1", messages=[_msg(type="human", content="x")])
     log.flush_for_tests(timeout=5.0)
     doc = coll.find_one({})
-    after = datetime.now(timezone.utc)
+    after = datetime.now(UTC)
     ts = doc["ts"]
     if ts.tzinfo is None:
-        ts = ts.replace(tzinfo=timezone.utc)
+        ts = ts.replace(tzinfo=UTC)
     # BSON truncates to milliseconds; allow a 1s window to absorb that + CI noise.
     assert before - timedelta(seconds=1) <= ts <= after + timedelta(seconds=1)
     log.close(timeout=5.0)

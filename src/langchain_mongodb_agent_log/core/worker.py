@@ -25,7 +25,7 @@ import contextlib
 import queue
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
 from pymongo.errors import PyMongoError
@@ -263,7 +263,7 @@ class _DaemonWorker:
                 self._written += 1
                 ts = doc.get("ts")
                 self._last_write_ts = (
-                    ts if isinstance(ts, datetime) else datetime.now(timezone.utc)
+                    ts if isinstance(ts, datetime) else datetime.now(UTC)
                 )
 
 

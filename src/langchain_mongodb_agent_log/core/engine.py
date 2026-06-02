@@ -14,7 +14,7 @@ import atexit
 import contextlib
 import threading
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from .._logging import get_logger
@@ -134,7 +134,7 @@ class AgentLog:
             "thread_id": thread_id,
             "user_id": user_id,
             "agent_name": agent_name or "main",
-            "ts": ts if ts is not None else datetime.now(timezone.utc),
+            "ts": ts if ts is not None else datetime.now(UTC),
             "messages": messages_proj,
             "todos": todos_proj,
             "files_touched": files_proj,

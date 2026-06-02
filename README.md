@@ -137,7 +137,7 @@ The full doc index: [`docs/README.md`](docs/README.md).
 
 ## Compatibility
 
-- Python 3.10+
+- Python 3.11+
 - `langchain >= 0.3.27`, `langchain-core >= 0.3`, `langgraph >= 0.3`,
   `langchain-mongodb >= 0.11`, `pymongo >= 4.6`.
 - MongoDB Atlas with Search + Vector Search indexes (the search

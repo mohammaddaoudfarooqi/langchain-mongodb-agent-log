@@ -54,9 +54,10 @@ def default_voyage(
             "`pip install langchain-mongodb-agent-log[voyage]` to use "
             "default_voyage(), or pass your own Embeddings instance."
         ) from exc
-    return VoyageAIEmbeddings(
-        voyage_api_key=api_key,  # type: ignore[call-arg]
+    embedder: Embeddings = VoyageAIEmbeddings(
+        voyage_api_key=api_key,
         model=model,
         output_dimension=dimensions,
         **kwargs,
     )
+    return embedder
