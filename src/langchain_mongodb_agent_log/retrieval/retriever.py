@@ -81,10 +81,10 @@ class AgentLogRetriever:
         """Return up to ``top_k`` log documents ranked by RRF fusion.
 
         The per-user pre-filter is mandatory and verified at the retriever
-        level (INV-004) — a caller can never see another user's threads.
-        Optional ``thread_id`` / ``since`` only further narrow results
-        (REQ-312). When a ``reranker`` was supplied, results are over-fetched
-        and reranked; any reranker error falls back to RRF order (REQ-313).
+        level — a caller can never see another user's threads.
+        Optional ``thread_id`` / ``since`` only further narrow results.
+        When a ``reranker`` was supplied, results are over-fetched and
+        reranked; any reranker error falls back to RRF order.
         """
         pre_filter: dict[str, Any] = {"user_id": {"$eq": user_id}}
         if thread_id:

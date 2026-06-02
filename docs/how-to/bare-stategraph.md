@@ -73,9 +73,9 @@ graph.invoke(
 ```
 
 Yes, this means the worker's super-steps fire **both** middleware (one
-write per inner step) and callback (one write per outer node end). For
-v0.1 we accept the duplicate; v0.2 may add a deduplication mode keyed
-on `(thread_id, step)`.
+write per inner step) and callback (one write per outer node end).
+For now we accept the duplicate; a future release may add a
+deduplication mode keyed on `(thread_id, step)`.
 
 ## Why pass `user_id` to the handler?
 

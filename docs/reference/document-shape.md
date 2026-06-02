@@ -34,7 +34,7 @@ collection.
 
   "files_touched": [
     { "path": "string", "size": 0,
-      "content_hash": null,         // reserved; null in v0.1
+      "content_hash": null,         // reserved; currently null
       "op": "write" | "edit" }
   ],
 
@@ -124,5 +124,5 @@ Default indexes:
 
 - Additive changes (new fields) are minor-version events.
 - Removed or renamed fields require a major version bump.
-- A field marked "reserved" (e.g. `content_hash` in v0.1) may be
+- A field marked "reserved" (e.g. `content_hash`) may be
   populated in a later minor version; readers should already tolerate it.

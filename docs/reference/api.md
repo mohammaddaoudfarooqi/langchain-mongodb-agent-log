@@ -145,7 +145,7 @@ pip install langchain-mongodb-agent-log[voyage]
 - [Document shape](document-shape.md) — what `record()` writes.
 - [Indexes](indexes.md) — what the index helpers create.
 
-## `scoped_user(user_id: str) -> ContextManager[None]`  *(v0.2+)*
+## `scoped_user(user_id: str) -> ContextManager[None]`
 
 ```python
 from langchain_mongodb_agent_log import scoped_user
@@ -166,7 +166,7 @@ with scoped_user("alice"):
 See [`docs/how-to/per-user-scoping-with-contextvar.md`](../how-to/per-user-scoping-with-contextvar.md)
 for the full pattern.
 
-## `current_user_id() -> str | None`  *(v0.2+)*
+## `current_user_id() -> str | None`
 
 ```python
 from langchain_mongodb_agent_log import current_user_id
@@ -184,7 +184,7 @@ call it directly.
 
 ---
 
-# v0.3 additions
+# Lifecycle, observability, and retrieval
 
 ## `AgentLog` lifecycle & observability
 

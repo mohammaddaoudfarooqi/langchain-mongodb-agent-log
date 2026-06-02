@@ -48,7 +48,7 @@ Pass `ttl_seconds=None` (the default). The TTL index is never created.
 - The Atlas Search and Vector Search indexes do not auto-shrink when
   documents are TTL-deleted; the next refresh window picks them up.
 
-## Change the TTL without dropping the index *(v0.3)*
+## Change the TTL without dropping the index
 
 `ensure_agent_log_indexes(ttl_seconds=...)` only sets the TTL at creation
 time — changing it used to require dropping and recreating the index. Use

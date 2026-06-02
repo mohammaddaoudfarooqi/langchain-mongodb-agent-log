@@ -1,6 +1,6 @@
 # How to monitor the agent-log write path
 
-The write path is a non-blocking daemon worker. v0.3 exposes counters and
+The write path is a non-blocking daemon worker. It exposes counters and
 lifecycle hooks so you can build health probes and shut down cleanly.
 
 ## Read worker stats (no DB round-trip)
@@ -26,7 +26,7 @@ def agent_log_health(log) -> dict:
 ```
 
 - `dropped > 0` means the queue overflowed and the **oldest** docs were
-  evicted (drop-oldest, REQ-020). Sustained drops mean the worker can't keep
+  evicted (drop-oldest). Sustained drops mean the worker can't keep
   up — investigate Atlas write latency or raise `queue_maxsize`.
 - `write_failures` counts swallowed `PyMongoError`s; `embed_failures` counts
   embedder errors (the doc is still written, just without search fields).

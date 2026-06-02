@@ -101,8 +101,8 @@ vars from inside a callback was tried and doesn't reliably work.
 
 The package is constructor-injected end-to-end. `AgentLog(...)` accepts
 everything you'd otherwise put in env vars. The reason is pragmatic:
-the alternative is two competing config systems (yours + ours), and at
-v0.1 we'd rather you bring your own.
+the alternative is two competing config systems (yours + ours), and
+we'd rather you bring your own.
 
 The single exception is `default_voyage()`, which reads
 `VOYAGE_API_KEY`. That's purely a convenience for the tutorial path; if

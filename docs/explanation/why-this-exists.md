@@ -152,7 +152,7 @@ A handwritten version that matches what this ships needs:
 - Atlas Search + Vector Search index DDL with idempotent re-run and
   drift detection (100 LOC + Atlas-CLI quirks).
 - A retriever wrapping `MongoDBAtlasHybridSearchRetriever` with a
-  mandatory per-user pre-filter (50 LOC + INV-004 tests).
+  mandatory per-user pre-filter (50 LOC + pre-filter tests).
 - A `@tool` factory binding the retriever for in-loop agent use (50
   LOC + LangChain `@tool` injection quirks).
 - `ContextVar`-based per-async-task `user_id` scoping for multi-tenant
@@ -178,7 +178,7 @@ favors the library.
 | Conversation memory the agent itself queries in-loop | **This package** (`search_past_conversations`) |
 | Audit log of what the agent said and did, queryable in MQL | **This package** (the `agent_log` collection) |
 | Per-user conversation history with hybrid search | **This package** |
-| Multi-tenant async server with one shared handler | **This package** (`scoped_user(...)` ContextVar, v0.2+) |
+| Multi-tenant async server with one shared handler | **This package** (`scoped_user(...)` ContextVar) |
 | Custom storage backend (S3, Postgres, etc.) | DIY — none of the above fit |
 
 ## Where it fits in your stack

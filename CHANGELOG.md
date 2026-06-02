@@ -33,15 +33,16 @@ public API changes from 0.3.0.
 
 ## [0.3.0] — 2026-06-02
 
-Hardening + feature release. Spec: `specs/v0.3/`. All v0.1/v0.2 behavior is
-preserved by default; new behavior is opt-in. 120 unit tests (was 80).
+Hardening + feature release. All v0.1/v0.2 behavior is preserved by default;
+new behavior is opt-in. 120 unit tests (was 80).
 
 ### Fixed
 
-- **Queue backpressure now drops the *oldest* doc, not the newest** (BUG-301).
-  REQ-020 documented "drop the oldest excess" but the worker discarded the
-  incoming (newest) super-step — the one most likely to be recalled.
-- **`flush_for_tests(timeout)` honors its timeout** (BUG-302): it raises
+- **Queue backpressure now drops the *oldest* doc, not the newest**.
+  The intended behavior was to drop the oldest excess, but the worker
+  discarded the incoming (newest) super-step — the one most likely to be
+  recalled.
+- **`flush_for_tests(timeout)` honors its timeout**: it raises
   `TimeoutError` on expiry instead of blocking forever on an unbounded
   `Queue.join()`.
 
@@ -49,34 +50,34 @@ preserved by default; new behavior is opt-in. 120 unit tests (was 80).
 
 - **Lifecycle:** `AgentLog.close(timeout)` (drain + stop the worker, idempotent),
   `AgentLog.flush(timeout)` (bounded drain), and an opt-out `flush_on_exit`
-  atexit hook. Fixes data loss on shutdown for embedding consumers. (REQ-300/301/302/303)
+  atexit hook. Fixes data loss on shutdown for embedding consumers.
 - **Observability:** `AgentLog.stats()` returns `queue_depth`, `queue_capacity`,
   `worker_alive`, `enqueued`, `written`, `dropped`, `embed_failures`,
-  `write_failures`, `last_write_ts` — no DB round-trip. (REQ-304/305)
+  `write_failures`, `last_write_ts` — no DB round-trip.
 - **Durable step counter (opt-in):** `AgentLog(..., durable_step=True)` assigns
   `step`/`parent_step` from a persisted per-thread atomic counter on the worker
   thread, so `step` is monotonic across restarts and processes. Default behavior
-  (in-memory, non-blocking) is unchanged. (REQ-306/307)
+  (in-memory, non-blocking) is unchanged.
 - **Ordered read API:** `AgentLog.get_thread(thread_id, *, user_id, limit,
   ascending)` (ordered by `ts`, restart-robust) and
-  `AgentLog.get_by_correlation_id(cid)`. (REQ-308/309/310)
+  `AgentLog.get_by_correlation_id(cid)`.
 - **Retrieval:** `AgentLogRetriever`/`build_tool` accept `search_index`/
   `vector_index` (so renamed Atlas indexes actually take effect), optional
   `thread_id`/`since` narrowing filters, and an optional best-effort
-  `reranker` (falls back to RRF order on any reranker error). (REQ-311/312/313)
+  `reranker` (falls back to RRF order on any reranker error).
 - **Search index** now maps `agent_name` so structured `$search` can scope by
-  agent. (REQ-314)
+  agent.
 - **Attribution:** `AgentLogMiddleware(log, agent_name="...")` — a constructor
   override (beats `configurable["agent_name"]`) giving deepagents subagents an
-  attribution seam. (REQ-315)
+  attribution seam.
 - **Correlation ids** are auto-derived in the adapters when absent
   (`traceparent` → `x_request_id` → uuid4 string); the engine stays
-  framework-agnostic. (REQ-316)
+  framework-agnostic.
 - **`set_ttl(collection, ttl_seconds)`** updates retention in place via
-  `collMod` (no drop-and-recreate); `None` removes the TTL index. (REQ-317)
-- **`AgentLog.record(..., ts=)`** for deterministic seeding. (REQ-318)
+  `collMod` (no drop-and-recreate); `None` removes the TTL index.
+- **`AgentLog.record(..., ts=)`** for deterministic seeding.
 - A rate-limited warning when a final super-step has no embeddable text
-  (single-role turn → invisible to vector search). (REQ-319)
+  (single-role turn → invisible to vector search).
 - GitHub Actions CI (ruff + mypy --strict + pytest on 3.10/3.11/3.12).
 
 ### Changed
@@ -144,4 +145,4 @@ with scoped_user(req.user_id):
 
 ## [0.1.0] — 2026-05-12
 
-Initial release. See `specs/v0.1/` for the full spec.
+Initial release.
