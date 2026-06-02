@@ -1,7 +1,7 @@
 """Non-semantic ordered read API — REQ-308, REQ-309, REQ-310, INV-301."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import mongomock
@@ -14,7 +14,7 @@ def coll() -> Any:
 
 
 def _seed(coll: Any) -> None:
-    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    base = datetime(2026, 1, 1, tzinfo=UTC)
     # Insert out of ts order to prove sorting, not insertion order.
     coll.insert_many(
         [

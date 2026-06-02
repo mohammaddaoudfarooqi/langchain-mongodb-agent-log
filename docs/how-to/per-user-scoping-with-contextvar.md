@@ -4,10 +4,9 @@ Goal: a single `AgentLogCallbackHandler` instance, shared across many
 concurrent requests, attributing each agent-log document to the correct
 user — without leaking attribution between users.
 
-This page is for v0.2+ only. v0.1 forced you to either pass `user_id`
-in `metadata` per call, or instantiate one handler per user. v0.2 adds
-a `ContextVar`-based scope so a single handler works correctly under
-concurrency.
+Without it, you'd either pass `user_id` in `metadata` on every call, or
+instantiate one handler per user. A `ContextVar`-based scope lets a
+single handler work correctly under concurrency.
 
 ## When you need this
 

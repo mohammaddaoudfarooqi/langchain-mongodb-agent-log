@@ -6,7 +6,7 @@ def test_package_imports() -> None:
     import langchain_mongodb_agent_log as p
 
     assert p.__name__ == "langchain_mongodb_agent_log"
-    assert p.__version__ == "0.3.0"
+    assert p.__version__ == "1.0.0"
 
 
 def test_public_api_names_listed() -> None:

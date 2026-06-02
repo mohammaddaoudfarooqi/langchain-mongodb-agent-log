@@ -129,3 +129,26 @@ def test_missing_thread_id_skips(log: Any, coll: Any) -> None:
     mw.after_model({"messages": [_msg(type="human", content="hi")]}, rt)
     log.flush_for_tests()
     assert coll.count_documents({}) == 0
+
+
+# get_config() unavailable and no runtime.config → recover thread_id from the
+# Runtime's execution_info. This is the only identity LangGraph propagates into
+# an async node, so without this fallback the engine would silently drop the
+# super-step whenever the ambient runnable-config context is unreachable.
+def test_execution_info_thread_id_fallback() -> None:
+    from langchain_mongodb_agent_log.adapters.middleware import (
+        _configurable_from_runtime,
+    )
+
+    class _ExecInfo:
+        thread_id = "ta"
+
+    class _Runtime:
+        # No ``config`` attribute, mirroring a real LangGraph Runtime.
+        execution_info = _ExecInfo()
+
+    with patch(
+        "langgraph.config.get_config", side_effect=RuntimeError("no context")
+    ):
+        cfg = _configurable_from_runtime(_Runtime())
+    assert cfg == {"thread_id": "ta"}

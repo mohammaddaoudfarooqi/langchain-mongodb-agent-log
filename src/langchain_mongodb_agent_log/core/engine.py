@@ -6,7 +6,7 @@ the engine knows nothing about middleware, callbacks, or graph nodes.
 
 For v0.1 the persistence path is **synchronous in tests** by virtue of
 ``flush_for_tests()`` blocking on the worker queue. The hot path itself is
-non-blocking because the worker drains in a background thread (T46).
+non-blocking because the worker drains in a background thread.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import atexit
 import contextlib
 import threading
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from .._logging import get_logger
@@ -77,12 +77,12 @@ class AgentLog:
         self._step_lock = threading.Lock()
         self._closed = False
         self._closed_warned = False
-        # REQ-319: thread_ids already warned about an un-searchable final step.
+        # thread_ids already warned about an un-searchable final step.
         self._search_warned: set[str] = set()
 
-        # REQ-306: when durable_step is on, ``step`` comes from a persisted
-        # per-thread atomic counter assigned on the worker thread (off the
-        # agent hot path). Counter collection defaults to ``<name>_counters``.
+        # When durable_step is on, ``step`` comes from a persisted per-thread
+        # atomic counter assigned on the worker thread (off the agent hot path).
+        # Counter collection defaults to ``<name>_counters``.
         self._counter_collection: Collection[Any] | None = None
         if durable_step:
             self._counter_collection = counter_collection or collection.database[
@@ -97,8 +97,8 @@ class AgentLog:
             counter_collection=self._counter_collection,
         )
 
-        # REQ-303: best-effort drain on interpreter shutdown so a process
-        # that forgets to call close() still flushes the worker queue.
+        # Best-effort drain on interpreter shutdown so a process that forgets
+        # to call close() still flushes the worker queue.
         if flush_on_exit:
             atexit.register(self._atexit_flush)
 
@@ -116,7 +116,7 @@ class AgentLog:
         """Project state and enqueue one log document. Non-blocking.
 
         ``ts`` overrides the document timestamp (default ``now`` UTC); useful
-        for deterministic seeding (REQ-318).
+        for deterministic seeding.
         """
         if self._closed:
             if not self._closed_warned:
@@ -134,7 +134,7 @@ class AgentLog:
             "thread_id": thread_id,
             "user_id": user_id,
             "agent_name": agent_name or "main",
-            "ts": ts if ts is not None else datetime.now(timezone.utc),
+            "ts": ts if ts is not None else datetime.now(UTC),
             "messages": messages_proj,
             "todos": todos_proj,
             "files_touched": files_proj,
@@ -142,13 +142,12 @@ class AgentLog:
         }
 
         if self.durable_step:
-            # REQ-306: the worker assigns ``step``/``parent_step`` from the
-            # persisted counter, keeping the counter round-trip off this hot
-            # path (NFR-300).
+            # The worker assigns ``step``/``parent_step`` from the persisted
+            # counter, keeping the counter round-trip off this hot path.
             doc["__assign_step"] = thread_id
         else:
-            # REQ-307: guard the in-memory counter so a shared engine can't
-            # duplicate or skip ``step`` under concurrent record() callers.
+            # Guard the in-memory counter so a shared engine can't duplicate
+            # or skip ``step`` under concurrent record() callers.
             with self._step_lock:
                 step = self._step_counter.get(thread_id, 0)
                 self._step_counter[thread_id] = step + 1
@@ -162,8 +161,8 @@ class AgentLog:
                 doc["__embedder"] = self._embeddings
                 doc["__search_text"] = text
             elif thread_id not in self._search_warned:
-                # REQ-319: a final step with no embeddable text (single-role
-                # turn) is invisible to vector search. Warn once per thread.
+                # A final step with no embeddable text (single-role turn) is
+                # invisible to vector search. Warn once per thread.
                 self._search_warned.add(thread_id)
                 _log.warning(
                     "agent_log: final step for thread=%s has no searchable text "
@@ -178,7 +177,7 @@ class AgentLog:
         """Bounded drain of the worker queue. Does not stop the worker.
 
         Returns ``True`` if the queue drained within ``timeout``, else
-        ``False``. Safe to call repeatedly (REQ-301).
+        ``False``. Safe to call repeatedly.
         """
         return self._worker.drain(timeout)
 
@@ -186,7 +185,7 @@ class AgentLog:
         """Drain the queue, stop the worker, and refuse further writes.
 
         Returns ``True`` if the queue drained and the worker stopped within
-        ``timeout``. Idempotent (REQ-300/302).
+        ``timeout``. Idempotent.
         """
         self._closed = True
         return self._worker.close(timeout)
@@ -196,7 +195,7 @@ class AgentLog:
 
         Keys: ``queue_depth``, ``queue_capacity``, ``worker_alive``,
         ``enqueued``, ``written``, ``dropped``, ``embed_failures``,
-        ``write_failures``, ``last_write_ts`` (REQ-304).
+        ``write_failures``, ``last_write_ts``.
         """
         return self._worker.stats()
 
@@ -212,7 +211,7 @@ class AgentLog:
 
         Non-semantic read backed by ``agent_log_thread_ts_idx``. WHEN
         ``user_id`` is supplied it further filters (defense in depth for
-        multi-tenant reads, REQ-308). Returns ``[]`` on no match (REQ-310).
+        multi-tenant reads). Returns ``[]`` on no match.
         """
         query: dict[str, Any] = {"thread_id": thread_id}
         if user_id is not None:
@@ -223,7 +222,7 @@ class AgentLog:
     def get_by_correlation_id(
         self, correlation_id: str, *, limit: int | None = None
     ) -> list[dict[str, Any]]:
-        """Return all log documents for a correlation id, ordered by ``ts`` (REQ-309)."""
+        """Return all log documents for a correlation id, ordered by ``ts``."""
         return self._read(
             {"correlation_id": correlation_id}, sort=[("ts", 1)], limit=limit
         )
@@ -249,8 +248,8 @@ class AgentLog:
     def flush_for_tests(self, timeout: float = 5.0) -> None:
         """Block until the worker queue drains. Test-only helper.
 
-        Honors ``timeout`` (BUG-302): raises :class:`TimeoutError` if the
-        queue has not drained within ``timeout`` seconds.
+        Raises :class:`TimeoutError` if the queue has not drained within
+        ``timeout`` seconds.
         """
         if not self._worker.drain(timeout):
             raise TimeoutError(
@@ -258,6 +257,6 @@ class AgentLog:
             )
 
     def _atexit_flush(self) -> None:
-        """Best-effort drain on interpreter shutdown; never raises (REQ-303)."""
+        """Best-effort drain on interpreter shutdown; never raises."""
         with contextlib.suppress(Exception):  # shutdown is best-effort
             self.close(timeout=2.0)

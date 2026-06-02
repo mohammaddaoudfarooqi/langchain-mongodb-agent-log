@@ -9,8 +9,12 @@ Configurable extraction order:
 1. ``langgraph.config.get_config()`` (the LangGraph-native way to access the
    active ``RunnableConfig`` from inside a node) — when called inside a
    compiled graph, this returns the live config.
-2. Fallback to ``runtime.config["configurable"]`` for unit tests that
-   construct a ``Runtime``-shaped mock without spinning up a graph.
+2. ``runtime.config["configurable"]`` for adapters and unit rigs that hand
+   the middleware a ``Runtime``-shaped object carrying an explicit config.
+3. ``runtime.execution_info.thread_id`` — the thread id LangGraph attaches
+   directly to the node ``Runtime``. This is the last identity that survives
+   when the ambient runnable-config context is unreachable, so it keeps the
+   super-step from being silently dropped.
 """
 from __future__ import annotations
 
@@ -27,6 +31,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
 def _configurable_from_runtime(runtime: Any) -> dict[str, Any]:
     """Best-effort extraction of ``RunnableConfig.configurable``."""
+    # 1. LangGraph-native ambient config — populated in sync nodes and, on
+    #    CPython >= 3.11, async nodes.
     try:
         from langgraph.config import get_config
 
@@ -37,11 +43,18 @@ def _configurable_from_runtime(runtime: Any) -> dict[str, Any]:
                 return dict(inner)
     except Exception:
         pass
-    fallback = getattr(runtime, "config", {}) or {}
+    # 2. Explicit ``runtime.config`` (some adapters and test rigs set it).
+    fallback = getattr(runtime, "config", None) or {}
     if isinstance(fallback, dict):
         inner = fallback.get("configurable", {})
-        if isinstance(inner, dict):
+        if isinstance(inner, dict) and inner:
             return dict(inner)
+    # 3. Last resort: recover the thread id from the node Runtime. Custom
+    #    configurable keys (user_id, agent_name, ...) are not carried here.
+    info = getattr(runtime, "execution_info", None)
+    thread_id = getattr(info, "thread_id", None)
+    if isinstance(thread_id, str) and thread_id:
+        return {"thread_id": thread_id}
     return {}
 
 
@@ -69,8 +82,8 @@ class AgentLogMiddleware(AgentMiddleware[Any, Any, Any]):
 
         Args:
             log: The :class:`AgentLog` engine instance to write through.
-            agent_name: Optional constructor override (REQ-315). WHEN set it
-                takes precedence over ``configurable["agent_name"]`` — the
+            agent_name: Optional constructor override. When set it takes
+                precedence over ``configurable["agent_name"]`` — the
                 attribution seam for deepagents subagents: attach
                 ``AgentLogMiddleware(log, agent_name="researcher")`` to that
                 subagent's ``middleware=[...]`` list.
@@ -86,7 +99,7 @@ class AgentLogMiddleware(AgentMiddleware[Any, Any, Any]):
         user_id = str(cfg.get("user_id") or "")
         messages = state.get("messages", []) if isinstance(state, dict) else []
         todos = state.get("todos") if isinstance(state, dict) else None
-        # REQ-315: constructor override beats configurable.
+        # Constructor override beats configurable.
         agent_name = self._agent_name or cfg.get("agent_name")
         self._log.record(
             thread_id=thread_id,

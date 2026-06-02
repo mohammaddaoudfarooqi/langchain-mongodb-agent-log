@@ -18,7 +18,7 @@ agent's middleware.
 
 `AgentLogMiddleware(log, agent_name="researcher")` hardcodes the attribution
 for whichever agent it is attached to. The constructor value beats
-`configurable["agent_name"]` (REQ-315). Attach one to each subagent's
+`configurable["agent_name"]`. Attach one to each subagent's
 `middleware=[...]` list and the unconditional one to the main agent:
 
 ```python
@@ -46,8 +46,8 @@ main = create_deep_agent(
 
 Now `db.agent_log.distinct("agent_name")` returns
 `["main", "researcher", "writer"]`, and `search_past_conversations` / the
-`AgentLogRetriever` can scope a structured `$search` by `agent_name` (the v0.3
-search index maps it — REQ-314).
+`AgentLogRetriever` can scope a structured `$search` by `agent_name` (the
+search index maps it).
 
 ## Caveat: `parent_step` is per-thread, not a delegation pointer
 

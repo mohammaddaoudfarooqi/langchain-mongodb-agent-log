@@ -32,7 +32,7 @@ graph shape.
 - [Migrate from `create_react_agent`](how-to/migrate-from-create-react-agent.md)
 - [Configure TTL retention](how-to/configure-ttl.md)
 - [Provide custom embeddings](how-to/provide-custom-embeddings.md)
-- [Per-user scoping with ContextVar](how-to/per-user-scoping-with-contextvar.md) *(v0.2+)*
+- [Per-user scoping with ContextVar](how-to/per-user-scoping-with-contextvar.md)
 
 ## Reference
 

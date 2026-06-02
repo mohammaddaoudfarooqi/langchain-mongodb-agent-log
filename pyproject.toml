@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "langchain-mongodb-agent-log"
-version = "0.3.0"
+version = "1.0.0"
 description = "Queryable, hybrid-searchable agent activity log for LangChain agents on MongoDB Atlas."
 readme = "README.md"
 license = { text = "Apache-2.0" }
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
   { name = "MongoDB" },
 ]
@@ -24,14 +24,14 @@ keywords = [
   "vector-search",
 ]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries",
   "Topic :: Database",
 ]
@@ -42,17 +42,22 @@ dependencies = [
   "langchain>=0.3.27",
   "langgraph>=0.3",
   "langchain-mongodb>=0.11",
-]
-
-[project.optional-dependencies]
-voyage = [
+  # Voyage AI is the default embedder for hybrid recall and is required:
+  # the long-term-memory and agent-log search paths always embed via Voyage.
   "langchain-voyageai>=0.1.6",
 ]
 
+[project.optional-dependencies]
+# Retained for backward compatibility with existing `...[voyage]` install
+# pins. langchain-voyageai is now a core dependency (see above), so this
+# extra is intentionally empty.
+voyage = []
+
 [project.urls]
-Homepage = "https://github.com/mohammaddaoudfarooqi/langchain-mongodb-agent-log"
-Repository = "https://github.com/mohammaddaoudfarooqi/langchain-mongodb-agent-log"
-Issues = "https://github.com/mohammaddaoudfarooqi/langchain-mongodb-agent-log/issues"
+Homepage = "https://github.com/mongodb-partners/langchain-mongodb-agent-log"
+Repository = "https://github.com/mongodb-partners/langchain-mongodb-agent-log"
+Issues = "https://github.com/mongodb-partners/langchain-mongodb-agent-log/issues"
+Changelog = "https://github.com/mongodb-partners/langchain-mongodb-agent-log/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
@@ -85,7 +90,7 @@ filterwarnings = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -100,7 +105,7 @@ ignore = [
 "tests/**" = ["B011"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 files = ["src"]
 warn_unused_ignores = true

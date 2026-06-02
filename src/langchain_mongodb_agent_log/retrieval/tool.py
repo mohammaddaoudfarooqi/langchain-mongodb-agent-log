@@ -50,8 +50,8 @@ def build_tool(
     The tool's input schema is ``{"query": str}``. ``user_id`` is never an
     input parameter — it must come from the ``RunnableConfig`` so the agent
     cannot spoof another user's history. ``search_index`` / ``vector_index``
-    (REQ-311) and ``reranker`` (REQ-313) are forwarded to the retriever so
-    the query path matches the deployment's DDL.
+    and ``reranker`` are forwarded to the retriever so the query path matches
+    the deployment's DDL.
     """
     retriever = AgentLogRetriever(
         collection,

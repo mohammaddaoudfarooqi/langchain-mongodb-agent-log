@@ -1,6 +1,11 @@
 # langchain-mongodb-agent-log
 
-> v0.2 — alpha. API stable but not frozen. Apache-2.0.
+A queryable, hybrid-searchable activity log for LangChain agents, persisted in
+MongoDB Atlas — drop-in via a middleware or callback adapter.
+
+[![CI](https://github.com/mongodb-partners/langchain-mongodb-agent-log/actions/workflows/ci.yml/badge.svg)](https://github.com/mongodb-partners/langchain-mongodb-agent-log/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 ## What problem this solves
 
@@ -57,7 +62,7 @@ agent ◀── search_past_conversations ◀── AgentLogRetriever (RRF, per-
 ## 60-second quickstart
 
 ```bash
-pip install langchain-mongodb-agent-log[voyage]
+pip install langchain-mongodb-agent-log
 ```
 
 ```python
@@ -137,13 +142,14 @@ The full doc index: [`docs/README.md`](docs/README.md).
 
 ## Compatibility
 
-- Python 3.10+
+- Python 3.11+
 - `langchain >= 0.3.27`, `langchain-core >= 0.3`, `langgraph >= 0.3`,
   `langchain-mongodb >= 0.11`, `pymongo >= 4.6`.
 - MongoDB Atlas with Search + Vector Search indexes (the search
   features are generally available on community editions where Search
   is enabled; storage works on any MongoDB).
-- Voyage extra (`[voyage]`) optional.
+- Voyage AI (`langchain-voyageai`) ships as a core dependency and powers
+  the default embedder; you may still pass any `Embeddings` instance.
 
 ## License
 

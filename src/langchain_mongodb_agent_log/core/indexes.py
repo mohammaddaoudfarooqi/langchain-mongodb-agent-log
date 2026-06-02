@@ -85,9 +85,9 @@ def ensure_search_indexes(
         collection: The agent-log collection.
         embeddings_dim: Dimension of the embedding vector. Must match
             the vectors actually stored on the documents.
-        vector_index: Atlas Vector Search index name (REQ-311). Defaults to
+        vector_index: Atlas Vector Search index name. Defaults to
             ``agent_log_vector_idx``. Pass the same name the query path uses.
-        search_index: Atlas Search index name (REQ-311). Defaults to
+        search_index: Atlas Search index name. Defaults to
             ``agent_log_search_idx``.
     """
     vector_def = {
@@ -107,7 +107,7 @@ def ensure_search_indexes(
             "fields": {
                 "agent_log_text": {"type": "string"},
                 "user_id": {"type": "token"},
-                # REQ-314: structured $search can scope by agent, not only by
+                # Structured $search can scope by agent, not only by
                 # the synthesized agent_log_text.
                 "agent_name": {"type": "token"},
             },
@@ -122,7 +122,7 @@ def ensure_search_indexes(
 
 
 def set_ttl(collection: Collection[Any], ttl_seconds: int | None) -> None:
-    """Create or update the agent-log TTL without dropping the index (REQ-317).
+    """Create or update the agent-log TTL without dropping the index.
 
     Uses ``collMod`` to mutate ``expireAfterSeconds`` on
     ``agent_log_ts_ttl_idx`` in place. ``ttl_seconds=None`` removes the TTL

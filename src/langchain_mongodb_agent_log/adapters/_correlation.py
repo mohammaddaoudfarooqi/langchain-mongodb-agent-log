@@ -1,4 +1,4 @@
-"""Shared correlation-id derivation for the adapter layer (REQ-316).
+"""Shared correlation-id derivation for the adapter layer.
 
 The engine stays framework-agnostic and never generates ids; the adapters
 (middleware / callback / node) resolve a correlation id from the runtime
@@ -15,7 +15,7 @@ from typing import Any
 def derive_correlation_id(configurable: Mapping[str, Any]) -> str:
     """Resolve a correlation id, generating one when none is supplied.
 
-    Precedence (REQ-316):
+    Precedence:
     1. explicit ``configurable["correlation_id"]``
     2. the trace-id field of a W3C ``configurable["traceparent"]``
     3. ``configurable["x_request_id"]``

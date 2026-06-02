@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -29,7 +29,7 @@ def _planted_doc() -> Any:
     d.metadata = {
         "thread_id": "t1",
         "step": 3,
-        "ts": datetime(2026, 1, 1, tzinfo=timezone.utc),
+        "ts": datetime(2026, 1, 1, tzinfo=UTC),
         "agent_name": "main",
         "model_id": "claude-haiku",
     }

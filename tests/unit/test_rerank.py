@@ -1,7 +1,7 @@
 """Retriever filters + best-effort rerank + index forwarding — REQ-311/312/313."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -40,7 +40,7 @@ def test_TC_312_compound_prefilter(coll: Any) -> None:
     p, cls = _patch_hybrid([])
     try:
         r = AgentLogRetriever(coll, embeddings=_FakeEmbedder())
-        since = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        since = datetime(2026, 1, 1, tzinfo=UTC)
         r.invoke("q", user_id="alice", thread_id="t-7", since=since)
         pre = cls.call_args.kwargs["pre_filter"]
         assert pre["user_id"] == {"$eq": "alice"}
