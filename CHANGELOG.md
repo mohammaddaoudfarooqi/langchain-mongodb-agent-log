@@ -1,7 +1,35 @@
 # Changelog
 
 All notable changes to this project. Format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] — 2026-06-02
+
+First stable release. The public API documented in
+[`docs/reference/api.md`](docs/reference/api.md) is now covered by semantic
+versioning, and the project has moved to its official home in the MongoDB
+Partners organization. Apart from the raised Python floor, there are no
+public API changes from 0.3.0.
+
+### Changed
+
+- **Python 3.11+ is now required** (was 3.10+). On CPython 3.10 the async
+  agent path cannot propagate the runnable-config context into a middleware
+  hook, so per-user attribution silently failed under `ainvoke`. Rather than
+  ship that sharp edge, 3.10 is dropped; the supported matrix is now
+  3.11 / 3.12 / 3.13.
+- Promoted from alpha to production/stable.
+- **`langchain-voyageai` is now a core dependency** (was the optional
+  `[voyage]` extra). Voyage AI is the default embedder for hybrid recall, so
+  a plain `pip install langchain-mongodb-agent-log` is batteries-included.
+  The `[voyage]` extra is kept (empty) so existing install pins keep working.
+
+### Fixed
+
+- Async agents no longer risk dropping a super-step when the ambient
+  runnable-config context is unreachable — `thread_id` is recovered from the
+  node runtime as a fallback.
 
 ## [0.3.0] — 2026-06-02
 

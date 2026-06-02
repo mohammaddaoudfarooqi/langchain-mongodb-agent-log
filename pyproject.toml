@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "langchain-mongodb-agent-log"
-version = "0.3.0"
+version = "1.0.0"
 description = "Queryable, hybrid-searchable agent activity log for LangChain agents on MongoDB Atlas."
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -24,7 +24,7 @@ keywords = [
   "vector-search",
 ]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
@@ -42,12 +42,16 @@ dependencies = [
   "langchain>=0.3.27",
   "langgraph>=0.3",
   "langchain-mongodb>=0.11",
+  # Voyage AI is the default embedder for hybrid recall and is required:
+  # the long-term-memory and agent-log search paths always embed via Voyage.
+  "langchain-voyageai>=0.1.6",
 ]
 
 [project.optional-dependencies]
-voyage = [
-  "langchain-voyageai>=0.1.6",
-]
+# Retained for backward compatibility with existing `...[voyage]` install
+# pins. langchain-voyageai is now a core dependency (see above), so this
+# extra is intentionally empty.
+voyage = []
 
 [project.urls]
 Homepage = "https://github.com/mohammaddaoudfarooqi/langchain-mongodb-agent-log"

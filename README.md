@@ -1,7 +1,5 @@
 # langchain-mongodb-agent-log
 
-> v0.2 — alpha. API stable but not frozen. Apache-2.0.
-
 ## What problem this solves
 
 Your agent has been running for weeks. A user asks:
@@ -57,7 +55,7 @@ agent ◀── search_past_conversations ◀── AgentLogRetriever (RRF, per-
 ## 60-second quickstart
 
 ```bash
-pip install langchain-mongodb-agent-log[voyage]
+pip install langchain-mongodb-agent-log
 ```
 
 ```python
@@ -143,7 +141,8 @@ The full doc index: [`docs/README.md`](docs/README.md).
 - MongoDB Atlas with Search + Vector Search indexes (the search
   features are generally available on community editions where Search
   is enabled; storage works on any MongoDB).
-- Voyage extra (`[voyage]`) optional.
+- Voyage AI (`langchain-voyageai`) ships as a core dependency and powers
+  the default embedder; you may still pass any `Embeddings` instance.
 
 ## License
 

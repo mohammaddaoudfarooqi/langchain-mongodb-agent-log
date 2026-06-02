@@ -48,16 +48,15 @@ def default_voyage(
         )
     try:
         from langchain_voyageai import VoyageAIEmbeddings
-    except ImportError as exc:  # pragma: no cover - exercised when extra missing
+    except ImportError as exc:  # pragma: no cover - defensive; voyage is a core dep
         raise RuntimeError(
-            "langchain-voyageai is not installed. Install with "
-            "`pip install langchain-mongodb-agent-log[voyage]` to use "
-            "default_voyage(), or pass your own Embeddings instance."
+            "langchain-voyageai is not installed. Reinstall "
+            "langchain-mongodb-agent-log, or pass your own Embeddings "
+            "instance to AgentLog instead of calling default_voyage()."
         ) from exc
-    embedder: Embeddings = VoyageAIEmbeddings(
-        voyage_api_key=api_key,
+    return VoyageAIEmbeddings(
+        voyage_api_key=api_key,  # type: ignore[call-arg]
         model=model,
         output_dimension=dimensions,
         **kwargs,
     )
-    return embedder
